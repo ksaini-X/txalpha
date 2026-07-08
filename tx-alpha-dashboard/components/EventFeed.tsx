@@ -1,35 +1,29 @@
-'use client'
+"use client";
 
-import { MatchEvent } from '@/lib/mock-data'
-import {
-  Goal,
-  AlertCircle,
-  Circle,
-  Zap,
-  BarChart3,
-} from 'lucide-react'
+import { MatchEvent } from "@/lib/mock-data";
+import { Goal, AlertCircle, Circle, Zap, BarChart3 } from "lucide-react";
 
 interface EventFeedProps {
-  events: MatchEvent[]
+  events: MatchEvent[];
 }
 
 export function EventFeed({ events }: EventFeedProps) {
-  const getEventIcon = (type: MatchEvent['type']) => {
+  const getEventIcon = (type: MatchEvent["type"]) => {
     switch (type) {
-      case 'goal':
-        return <Goal className="w-5 h-5 text-green-400" />
-      case 'card':
-        return <AlertCircle className="w-5 h-5 text-yellow-400" />
-      case 'corner':
-        return <Circle className="w-5 h-5 text-blue-400" />
-      case 'shot':
-        return <Zap className="w-5 h-5 text-orange-400" />
-      case 'possession':
-        return <BarChart3 className="w-5 h-5 text-slate-400" />
+      case "goal":
+        return <Goal className="w-5 h-5 text-green-400" />;
+      case "card":
+        return <AlertCircle className="w-5 h-5 text-yellow-400" />;
+      case "corner":
+        return <Circle className="w-5 h-5 text-blue-400" />;
+      case "shot":
+        return <Zap className="w-5 h-5 text-orange-400" />;
+      case "possession":
+        return <BarChart3 className="w-5 h-5 text-slate-400" />;
       default:
-        return <Circle className="w-5 h-5 text-slate-400" />
+        return <Circle className="w-5 h-5 text-slate-400" />;
     }
-  }
+  };
 
   return (
     <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -41,9 +35,7 @@ export function EventFeed({ events }: EventFeedProps) {
         >
           {/* Event header with icon and text */}
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-1">
-              {getEventIcon(event.type)}
-            </div>
+            <div className="flex-shrink-0 mt-1">{getEventIcon(event.type)}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="font-mono text-xs font-bold text-slate-400">
@@ -61,7 +53,7 @@ export function EventFeed({ events }: EventFeedProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // Add fade-in animation
@@ -80,10 +72,10 @@ const style = `
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
-`
+`;
 
-if (typeof window !== 'undefined') {
-  const styleElement = document.createElement('style')
-  styleElement.textContent = style
-  document.head.appendChild(styleElement)
+if (typeof window !== "undefined") {
+  const styleElement = document.createElement("style");
+  styleElement.textContent = style;
+  document.head.appendChild(styleElement);
 }

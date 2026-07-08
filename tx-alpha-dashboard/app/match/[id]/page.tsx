@@ -13,7 +13,12 @@ export interface ProbabilityPoint {
   home: number;
   away: number;
 }
-
+interface MatchEvent {
+  minute: number;
+  ts: number;
+  type: "goal" | "corner" | "yellow_card" | "red_card";
+  participant: number; // team ID — map to home/away via fixture.participant1Id/2Id
+}
 interface OddsUpdate {
   fixture_id: number;
   data: {
@@ -35,6 +40,12 @@ export default function MatchDetailPage({
   const { socket } = useSocket();
   const [fixture, setFixture] = useState<Fixture | null>(null);
   const [hasInitialData, setHasInitialData] = useState(false);
+  const [liveScore, setLiveScore] = useState<{
+    home: number;
+    away: number;
+  } | null>(null);
+  const [liveMinute, setLiveMinute] = useState<number | null>(null);
+  const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([]);
 
   const [probabilityHistory, setProbabilityHistory] = useState<
     ProbabilityPoint[]
@@ -51,9 +62,12 @@ export default function MatchDetailPage({
     if (!socket || !id) return;
 
     const handleOpen = () => {
-      socket.send(JSON.stringify({ type: "GetMatches" }));
+      socket.send(JSON.stringify({ type: "getMatches" }));
       socket.send(
-        JSON.stringify({ type: "GetMatchUpdates", fixture_id: Number(id) }),
+        JSON.stringify({ type: "getMatchUpdates", fixtureId: Number(id) }),
+      );
+      socket.send(
+        JSON.stringify({ type: "getMatchScores", fixtureId: Number(id) }),
       );
     };
 
@@ -134,6 +148,62 @@ export default function MatchDetailPage({
           return updated;
         });
       }
+
+      // scores snapshot (initial)
+      if (msg.type === "score_snapshot") {
+        const latest = msg.data[msg.data.length - 1]; // or however you pick "current" from the snapshot array
+        if (latest?.scoreSoccer) {
+          setLiveScore({
+            home: latest.scoreSoccer.Participant1.Total.Goals,
+            away: latest.scoreSoccer.Participant2.Total.Goals,
+          });
+        }
+        if (latest?.clock) {
+          setLiveMinute(Math.floor(latest.clock.seconds / 60));
+        }
+        return;
+      }
+
+      // live score update
+      if (msg.type === "score_update") {
+        const data = msg.data.data; // ScoreEvent.data
+        if (data.scoreSoccer) {
+          setLiveScore({
+            home: data.scoreSoccer.Participant1.Total.Goals,
+            away: data.scoreSoccer.Participant2.Total.Goals,
+          });
+        }
+        if (data.clock) {
+          setLiveMinute(Math.floor(data.clock.seconds / 60));
+        }
+
+        // if this event is a notable match event, add to feed
+        if (
+          data.dataSoccer?.goal ||
+          data.dataSoccer?.corner ||
+          data.dataSoccer?.yellowCard ||
+          data.dataSoccer?.redCard
+        ) {
+          const eventType = data.dataSoccer.goal
+            ? "goal"
+            : data.dataSoccer.redCard
+              ? "red_card"
+              : data.dataSoccer.yellowCard
+                ? "yellow_card"
+                : "corner";
+
+          setMatchEvents((prev) => [
+            {
+              minute: data.dataSoccer.minutes ?? liveMinute ?? 0,
+              ts: data.ts,
+              type: eventType,
+              participant: data.dataSoccer.participant ?? 0,
+            },
+            ...prev, // newest first
+          ]);
+        }
+        return;
+      }
     };
     socket.addEventListener("open", handleOpen);
     socket.addEventListener("message", handleMessage);
@@ -172,111 +242,264 @@ export default function MatchDetailPage({
   });
 
   return (
-    <main className="min-h-screen bg-slate-950">
-      <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <Link
-            href="/matches"
-            className="inline-flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-sans">Back to matches</span>
-          </Link>
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: `
+        linear-gradient(rgba(0,255,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,.08) 1px, transparent 1px)
+      `,
+          backgroundSize: "48px 48px",
+        }}
+      />
+      <div className="absolute left-1/2 top-0 h-150 w-150 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm text-slate-400">Home</p>
-                <p className="text-lg font-bold text-slate-100">{homeTeam}</p>
+      <div className="relative z-10">
+        <header className="sticky top-0 z-20 border-b border-slate-800/60 bg-slate-950/85 backdrop-blur-xl">
+          <div className="mx-auto max-w-7xl px-6 py-4">
+            {/* Top Row */}
+            <div className="mb-5 flex items-center justify-between">
+              <Link
+                href="/matches"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/60 text-slate-400 transition hover:border-cyan-500/40 hover:text-cyan-400"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
+                  liveScore
+                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                    : "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${liveScore ? "bg-red-500 animate-pulse" : "bg-cyan-400"}`}
+                />
+                {liveScore ? `LIVE ${liveMinute ?? ""}'` : "UPCOMING"}
               </div>
             </div>
 
-            <div className="text-center">
-              <p className="text-xs font-mono text-slate-500 mb-1">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-4">
+                  <h1 className="truncate text-2xl font-bold lg:text-3xl">
+                    {homeTeam}
+                  </h1>
+                  {liveScore && (
+                    <span className="text-3xl font-mono font-bold text-cyan-400">
+                      {liveScore.home} - {liveScore.away}
+                    </span>
+                  )}
+                  <h1 className="truncate text-2xl font-bold lg:text-3xl">
+                    {awayTeam}
+                  </h1>
+
+                  <span className="rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold tracking-[0.3em] text-slate-500">
+                    VS
+                  </span>
+
+                  <h1 className="truncate text-2xl font-bold lg:text-3xl">
+                    {awayTeam}
+                  </h1>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+                  <span>{fixture.competition}</span>
+
+                  <span className="text-slate-600">•</span>
+
+                  <span>{kickoffLabel}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-widest text-slate-500">
+                    Samples
+                  </p>
+
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {probabilityHistory.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="mb-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-500">
+                Kickoff
+              </p>
+
+              <div className="mt-3 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-cyan-400" />
+
+                <span className="font-medium text-slate-200">
+                  {kickoffLabel}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-500">
+                Competition
+              </p>
+
+              <p className="mt-3 font-medium text-slate-200">
                 {fixture.competition}
               </p>
-              <div className="flex items-center justify-center gap-1.5 text-slate-400">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="font-mono text-sm">{kickoffLabel}</span>
-              </div>
-              {!hasStarted && (
-                <span className="font-mono text-xs text-slate-500 mt-1 inline-block">
-                  UPCOMING
-                </span>
-              )}
-              {hasStarted && (
-                <span className="font-mono text-xs text-slate-500 mt-1 inline-block">
-                  Live score not yet connected
-                </span>
-              )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm text-slate-400 text-right">Away</p>
-                <p className="text-lg font-bold text-slate-100">{awayTeam}</p>
-              </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-500">
+                Status
+              </p>
+
+              <p
+                className={`mt-3 font-semibold ${
+                  hasStarted ? "text-red-400" : "text-cyan-400"
+                }`}
+              >
+                {hasStarted ? "LIVE" : "UPCOMING"}
+              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 space-y-6">
-            {probabilityHistory.length === 0 ? (
-              <div className="w-full h-[28rem] bg-slate-900/50 border border-slate-700/50 rounded-lg flex items-center justify-center">
-                <div className="text-center px-6">
-                  <p className="text-slate-400 font-sans mb-1">
-                    {hasInitialData
-                      ? "No usable odds in initial snapshot — waiting for live data…"
-                      : "No initial data. Waiting for the server to send real-time data…"}
-                  </p>
-                  <p className="text-xs text-slate-600 font-mono">
-                    No updates received yet
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <ProbabilityChart
-                data={probabilityHistory}
-                homeTeam={homeTeam as string}
-                awayTeam={awayTeam as string}
-              />
-            )}
+          <div className="grid gap-6 lg:grid-cols-4">
+            {/* Chart */}
+            <div className="space-y-6 lg:col-span-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold">Probability Movement</h2>
 
-            {marketStatus && (
-              <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-cyan-400" />
-                  <h3 className="text-sm font-mono font-bold text-slate-300 uppercase tracking-wider">
-                    Market Activity
-                  </h3>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`px-3 py-2 rounded-full border ${
-                      marketStatus === "JUSTIFIED"
-                        ? "bg-green-500/20 border-green-500/50"
-                        : "bg-amber-500/20 border-amber-500/50"
-                    }`}
-                  >
-                    <span
-                      className={`text-sm font-mono font-bold ${
-                        marketStatus === "JUSTIFIED"
-                          ? "text-green-400"
-                          : "text-amber-400"
-                      }`}
-                    >
-                      {marketStatus}
-                    </span>
+                    <p className="text-sm text-slate-400">
+                      Live implied probability from market odds
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
 
-          {/* Event feed removed until a scores/events data source is wired */}
+                {probabilityHistory.length === 0 ? (
+                  <div className="flex h-[450px] items-center justify-center">
+                    <div className="text-center">
+                      <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+
+                      <p className="text-slate-300">
+                        {hasInitialData
+                          ? "Waiting for live odds..."
+                          : "Connecting to market feed..."}
+                      </p>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        Probability data will appear automatically.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <ProbabilityChart
+                    data={probabilityHistory}
+                    homeTeam={homeTeam}
+                    awayTeam={awayTeam}
+                  />
+                )}
+              </div>
+
+              {marketStatus && (
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+                  <div className="mb-5 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-cyan-400" />
+
+                    <h3 className="text-lg font-semibold">Market Activity</h3>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-slate-500">
+                        Status
+                      </p>
+
+                      <p
+                        className={`mt-2 font-bold ${
+                          marketStatus === "JUSTIFIED"
+                            ? "text-green-400"
+                            : "text-amber-400"
+                        }`}
+                      >
+                        {marketStatus}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-slate-500">
+                        Samples
+                      </p>
+
+                      <p className="mt-2 font-bold text-slate-200">
+                        {probabilityHistory.length}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-slate-500">
+                        Last Update
+                      </p>
+
+                      <p className="mt-2 font-bold text-slate-200">
+                        {new Date(
+                          probabilityHistory.at(-1)?.ts ?? fixture.startTime,
+                        ).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* AI Commentary */}
+            <div className="space-y-5">
+              {matchEvents.length === 0 ? (
+                <p className="text-sm text-slate-500">No match events yet.</p>
+              ) : (
+                matchEvents.map((e, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-slate-800 bg-slate-900 p-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-widest text-cyan-400">
+                        {e.minute}'
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-[11px] ${
+                          e.type === "goal"
+                            ? "bg-green-500/10 text-green-400"
+                            : e.type === "red_card"
+                              ? "bg-red-500/10 text-red-400"
+                              : e.type === "yellow_card"
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-slate-500/10 text-slate-400"
+                        }`}
+                      >
+                        {e.type.replace("_", " ")}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-6 text-slate-300">
+                      {/* TODO: replace with real Gemini-generated commentary once wired */}
+                      {e.type === "goal" &&
+                        `Goal for ${e.participant === fixture.participant1Id ? homeTeam : awayTeam}!`}
+                      {e.type === "yellow_card" && `Yellow card shown.`}
+                      {e.type === "red_card" && `Red card! Down to 10 men.`}
+                      {e.type === "corner" && `Corner kick.`}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>

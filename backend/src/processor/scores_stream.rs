@@ -5,37 +5,37 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     AppConfig,
-    processor::get_fixture_odds_snapshot::{FixtureOddsSnapShot, get_fixture_odds_snapshot},
-    types::odds_stream::OddsData,
+    processor::get_fixture_scores_snapshot::{FixtureScoreSnapshot, get_fixture_score_snapshot},
+    types::scores_stream::ScoreEvent,
 };
+
 #[derive(Serialize, Debug, Deserialize)]
-pub struct OddsDataWebSocketEvent {
+pub struct ScoresDataWebSocketEvent {
     #[serde(rename = "type")]
     event_type: &'static str,
     fixture_id: i64,
-    data: OddsData,
+    data: ScoreEvent,
 }
 
 #[derive(Serialize, Debug, Deserialize)]
-pub struct InitialOddsDataWebSocketEvent {
+pub struct InitialScoresDataWebSocketEvent {
     #[serde(rename = "type")]
-    event_type: &'static str,
+    event_type: &'static str, // "score_snapshot"
     fixture_id: i64,
-    data: Vec<FixtureOddsSnapShot>,
+    data: Vec<FixtureScoreSnapshot>,
 }
 
-pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
-    let initial_data = get_fixture_odds_snapshot(fixture_id, config.clone()).await;
+pub async fn scores_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
+    let initial_data = get_fixture_score_snapshot(fixture_id, config.clone()).await;
     match initial_data {
         Ok(data) => {
-            match serde_json::to_string(&InitialOddsDataWebSocketEvent {
-                event_type: "snapshot",
+            match serde_json::to_string(&InitialScoresDataWebSocketEvent {
+                event_type: "score_snapshot", // <-- renamed
                 data,
                 fixture_id,
             }) {
                 Ok(json) => {
-                    println!("sent from odds steeam");
-
+                    println!("sent initial scores snapshot");
                     if client_tx.send(Message::Text(json.into())).await.is_err() {
                         println!("Client disconnected before initial snapshot could be sent");
                         return;
@@ -44,12 +44,12 @@ pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: Ap
                 Err(e) => eprintln!("Failed to serialize initial snapshot: {e}"),
             }
         }
-        Err(_) => println!("No Initial Data"),
+        Err(e) => println!("No initial score data for fixture {fixture_id}: {e}"),
     }
 
     let response = match config
         .client
-        .get("https://txline.txodds.com/api/odds/stream")
+        .get("https://txline.txodds.com/api/scores/stream")
         .header("Authorization", format!("Bearer {}", config.jwt))
         .header("X-Api-Token", config.api_key)
         .send()
@@ -57,10 +57,11 @@ pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: Ap
     {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("Failed to connect to TxLINE odds stream for fixture {fixture_id}: {e}");
+            eprintln!("Failed to connect to TxLINE scores stream for fixture {fixture_id}: {e}");
             return;
         }
     };
+
     let mut stream = response.bytes_stream();
     let mut buffer = String::new();
 
@@ -75,14 +76,18 @@ pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: Ap
 
                 for line in event.lines() {
                     if let Some(msg) = line.strip_prefix("data: ") {
-                        if let Ok(data) = serde_json::from_str::<OddsData>(msg) {
-                            if data.fixture_id == fixture_id {
-                                let event = OddsDataWebSocketEvent {
-                                    event_type: "update",
+                        if msg.trim_start().starts_with("{\"Ts\"") {
+                            continue; // heartbeat, skip
+                        }
+
+                        if let Ok(data) = serde_json::from_str::<ScoreEvent>(msg) {
+                            if data.data.fixture_id == fixture_id {
+                                let ws_event = ScoresDataWebSocketEvent {
+                                    event_type: "score_update", // <-- renamed
                                     data,
                                     fixture_id,
                                 };
-                                match serde_json::to_string(&event) {
+                                match serde_json::to_string(&ws_event) {
                                     Ok(json) => {
                                         if client_tx.send(Message::Text(json.into())).await.is_err()
                                         {

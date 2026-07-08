@@ -1,14 +1,14 @@
 "use client";
 
 import {
+  ResponsiveContainer,
   AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend,
+  ReferenceLine,
 } from "recharts";
 import { ProbabilityPoint } from "@/lib/mock-data";
 
@@ -31,61 +31,102 @@ export function ProbabilityChart({
   awayTeam,
 }: ProbabilityChartProps) {
   return (
-    <div className="w-full h-80 bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="relative h-[420px] w-full">
+      {/* Live Indicator */}
+      <div className="absolute right-0 top-0 z-10 flex items-center gap-2 rounded-full border border-cyan-500/20 bg-slate-900/80 px-3 py-1 backdrop-blur">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+        <span className="text-xs font-semibold tracking-wide text-cyan-300">
+          LIVE
+        </span>
+      </div>
+
+      {/* Legend */}
+      <div className="mb-5 flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-sky-400" />
+          <span className="text-sm font-medium text-slate-300">{homeTeam}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-violet-400" />
+          <span className="text-sm font-medium text-slate-300">{awayTeam}</span>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height="92%">
         <AreaChart
           data={data}
-          margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+          margin={{
+            top: 10,
+            right: 10,
+            left: -10,
+            bottom: 0,
+          }}
         >
           <defs>
             <linearGradient id="homeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00d9ff" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#00d9ff" stopOpacity={0} />
+              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.18} />
+              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
             </linearGradient>
+
             <linearGradient id="awayGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00ff88" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
+              <stop offset="5%" stopColor="#a855f7" stopOpacity={0.18} />
+              <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="rgba(100, 116, 139, 0.15)"
             vertical={false}
+            strokeDasharray="2 6"
+            stroke="rgba(148,163,184,.12)"
           />
+
+          <ReferenceLine y={50} stroke="#475569" strokeDasharray="4 4" />
 
           <XAxis
             dataKey="ts"
             type="number"
             domain={["dataMin", "dataMax"]}
             tickFormatter={formatTime}
-            stroke="#64748b"
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
-            axisLine={{ stroke: "rgba(100, 116, 139, 0.3)" }}
+            tick={{
+              fill: "#94a3b8",
+              fontSize: 10,
+            }}
+            axisLine={false}
             tickLine={false}
             minTickGap={40}
           />
 
           <YAxis
-            stroke="#64748b"
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
+            domain={[0, 100]}
+            ticks={[25, 50, 75, 100]}
+            tickFormatter={(v) => `${v}%`}
+            tick={{
+              fill: "#94a3b8",
+              fontSize: 10,
+            }}
             axisLine={false}
             tickLine={false}
-            domain={[0, 100]}
-            tickFormatter={(v) => `${v}%`}
-            width={40}
+            width={42}
           />
 
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#0f1530",
-              border: "1px solid rgba(0, 217, 255, 0.25)",
-              borderRadius: "0.75rem",
-              padding: "10px 14px",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            cursor={{
+              stroke: "#475569",
+              strokeWidth: 1,
             }}
-            labelStyle={{ color: "#e0e5f5", fontWeight: 600, marginBottom: 4 }}
-            itemStyle={{ fontSize: "13px", padding: 0 }}
+            contentStyle={{
+              background: "#020617",
+              border: "1px solid #1e293b",
+              borderRadius: "12px",
+              padding: "12px 14px",
+              color: "#fff",
+            }}
+            labelStyle={{
+              color: "#e2e8f0",
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
             formatter={(value: number, name: string) => [
               `${value.toFixed(1)}%`,
               name,
@@ -94,41 +135,45 @@ export function ProbabilityChart({
               const point = payload?.[0]?.payload as
                 | ProbabilityPoint
                 | undefined;
-              const time = formatTime(ts);
-              return point ? `${time} · Minute ${point.minute}'` : time;
-            }}
-          />
 
-          <Legend
-            wrapperStyle={{
-              color: "#94a3b8",
-              fontSize: "12px",
-              paddingTop: "8px",
+              return point
+                ? `${formatTime(ts)} • ${point.minute}'`
+                : formatTime(ts);
             }}
-            iconType="circle"
           />
 
           <Area
-            type="monotone"
+            type="stepAfter"
             dataKey="home"
-            stroke="#00d9ff"
-            strokeWidth={2.5}
+            name={homeTeam}
+            stroke="#38bdf8"
+            strokeWidth={3}
             fill="url(#homeGradient)"
             dot={false}
-            activeDot={{ r: 5, strokeWidth: 0 }}
-            name={homeTeam}
-            isAnimationActive={false}
+            activeDot={{
+              r: 6,
+              fill: "#38bdf8",
+              stroke: "#0f172a",
+              strokeWidth: 3,
+            }}
+            animationDuration={300}
           />
+
           <Area
             type="monotone"
             dataKey="away"
-            stroke="#00ff88"
-            strokeWidth={2.5}
+            name={awayTeam}
+            stroke="#a855f7"
+            strokeWidth={3}
             fill="url(#awayGradient)"
             dot={false}
-            activeDot={{ r: 5, strokeWidth: 0 }}
-            name={awayTeam}
-            isAnimationActive={false}
+            activeDot={{
+              r: 6,
+              fill: "#a855f7",
+              stroke: "#0f172a",
+              strokeWidth: 3,
+            }}
+            animationDuration={300}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -1,4 +1,3 @@
-use axum::extract::State;
 use serde::{Deserialize, Serialize};
 
 use crate::AppConfig;
@@ -8,7 +7,7 @@ use crate::AppConfig;
     rename_all(deserialize = "PascalCase"),
     rename_all(serialize = "camelCase")
 )]
-pub struct FixtureSnapShot {
+pub struct FixtureOddsSnapShot {
     fixture_id: i64,
     message_id: String,
     ts: i64,
@@ -27,8 +26,8 @@ pub struct FixtureSnapShot {
 pub async fn get_fixture_odds_snapshot(
     fixture_id: i64,
     config: AppConfig,
-) -> Result<Vec<FixtureSnapShot>, String> {
-    let response: Vec<FixtureSnapShot> = config
+) -> Result<Vec<FixtureOddsSnapShot>, String> {
+    let response = config
         .client
         .get(format!(
             "https://txline.txodds.com/api/odds/snapshot/{}",
@@ -38,11 +37,17 @@ pub async fn get_fixture_odds_snapshot(
         .header("X-Api-Token", config.api_key)
         .send()
         .await
-        .expect("Failed")
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    let snapshot: Vec<FixtureOddsSnapShot> = response
         .json()
         .await
-        .expect("Failed json");
-    println!("There sis adata in get_fixture_odds_snapshot");
-    print!("{:?}", response);
-    Ok(response)
+        .map_err(|e| format!("Failed to parse JSON: {e}"))?;
+
+    println!(
+        "Got {} snapshot entries for fixture {fixture_id}",
+        snapshot.len()
+    );
+
+    Ok(snapshot)
 }

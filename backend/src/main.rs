@@ -22,7 +22,7 @@ use tokio::net::TcpListener;
 use crate::{
     processor::{
         get_fixture_odds_snapshot::get_fixture_odds_snapshot, get_fixtures::get_fixtures,
-        odds_stream::odds_stream,
+        odds_stream::odds_stream, scores_stream::scores_stream,
     },
     types::incoming_msg::IncomingMessage,
 };
@@ -94,11 +94,19 @@ async fn handle_socket(socket: WebSocket, config: AppConfig) {
                                 }
                             }
                             IncomingMessage::GetMatchUpdates { fixture_id } => {
-                                let config_clone = config.clone();
-                                println!("Subscribed to {:?}", fixture_id);
+                                println!("Subscribed to odds for {:?}", fixture_id);
                                 let tx_clone = client_tx.clone();
+                                let config_clone = config.clone();
                                 tokio::spawn(async move {
                                     odds_stream(tx_clone, fixture_id, config_clone).await;
+                                });
+                            }
+                            IncomingMessage::GetMatchScores { fixture_id } => {
+                                println!("Subscribed to scores for {:?}", fixture_id);
+                                let tx_clone = client_tx.clone();
+                                let config_clone = config.clone();
+                                tokio::spawn(async move {
+                                    scores_stream(tx_clone, fixture_id, config_clone).await;
                                 });
                             }
                             _ => {}
