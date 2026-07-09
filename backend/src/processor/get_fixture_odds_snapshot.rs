@@ -42,7 +42,7 @@ pub async fn get_fixture_odds_snapshot(
     let snapshot: Vec<FixtureOddsSnapShot> = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse JSON: {e}"))?;
+        .map_err(|e| format!("Failed to parse odds snapshot data JSON: {e}"))?;
 
     println!(
         "Got {} snapshot entries for fixture {fixture_id}",

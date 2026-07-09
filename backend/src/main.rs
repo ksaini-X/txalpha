@@ -1,11 +1,10 @@
+pub mod commentary;
 pub mod processor;
 pub mod snapshot;
 pub mod types;
-
-use std::env;
-
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
+use std::env;
 
 use axum::{
     Router,
@@ -14,15 +13,14 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
 };
 use reqwest::Client;
 use tokio::net::TcpListener;
 
 use crate::{
     processor::{
-        get_fixture_odds_snapshot::get_fixture_odds_snapshot, get_fixtures::get_fixtures,
-        odds_stream::odds_stream, scores_stream::scores_stream,
+        get_fixtures::get_fixtures, odds_stream::odds_stream, scores_stream::scores_stream,
     },
     types::incoming_msg::IncomingMessage,
 };
@@ -43,8 +41,6 @@ async fn main() {
         api_key: env::var("TXLINE_API_TOKEN").expect("TXLINE_API_TOKEN not set"),
         client,
     };
-
-    let (tx, rx) = tokio::sync::broadcast::channel::<String>(100);
 
     let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
     let router = Router::new()
@@ -77,7 +73,7 @@ async fn handle_socket(socket: WebSocket, config: AppConfig) {
             if let Ok(data) = msg {
                 match data {
                     Message::Text(text) => match serde_json::from_str::<IncomingMessage>(&text) {
-                        Err(_e) => println!("Failed to parse message"),
+                        Err(e) => println!("Failed to parse message: {e} — raw text: {text}"),
                         Ok(parsed_text) => match parsed_text {
                             IncomingMessage::GetMatches => {
                                 let config_clone = config.clone();

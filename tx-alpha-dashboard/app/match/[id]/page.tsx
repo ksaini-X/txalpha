@@ -62,12 +62,12 @@ export default function MatchDetailPage({
     if (!socket || !id) return;
 
     const handleOpen = () => {
-      socket.send(JSON.stringify({ type: "getMatches" }));
+      socket.send(JSON.stringify({ type: "GetMatches" }));
       socket.send(
-        JSON.stringify({ type: "getMatchUpdates", fixtureId: Number(id) }),
+        JSON.stringify({ type: "GetMatchUpdates", fixture_id: Number(id) }),
       );
       socket.send(
-        JSON.stringify({ type: "getMatchScores", fixtureId: Number(id) }),
+        JSON.stringify({ type: "GetMatchScores", fixture_id: Number(id) }),
       );
     };
 
@@ -289,17 +289,18 @@ export default function MatchDetailPage({
                   </h1>
                   {liveScore && (
                     <span className="text-3xl font-mono font-bold text-cyan-400">
-                      {liveScore.home} - {liveScore.away}
+                      {liveScore.home} -
                     </span>
                   )}
-                  <h1 className="truncate text-2xl font-bold lg:text-3xl">
-                    {awayTeam}
-                  </h1>
 
                   <span className="rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold tracking-[0.3em] text-slate-500">
                     VS
                   </span>
-
+                  {liveScore && (
+                    <span className="text-3xl font-mono font-bold text-cyan-400">
+                      - {liveScore.away}
+                    </span>
+                  )}
                   <h1 className="truncate text-2xl font-bold lg:text-3xl">
                     {awayTeam}
                   </h1>

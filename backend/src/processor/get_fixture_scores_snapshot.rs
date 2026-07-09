@@ -38,7 +38,7 @@ pub async fn get_fixture_score_snapshot(
     let snapshot: Vec<FixtureScoreSnapshot> = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse JSON: {e}"))?;
+        .map_err(|e| format!("Failed to parse scores historical data JSON: {e}"))?;
 
     println!(
         "Got {} score snapshot entries for fixture {fixture_id}",
