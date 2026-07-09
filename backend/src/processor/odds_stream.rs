@@ -34,7 +34,7 @@ pub struct CommentaryWebSocketEvent {
     text: String,
 }
 
-const SIGNIFICANT_PROB_SWING: f64 = 15.0; // percentage points
+const SIGNIFICANT_PROB_SWING: f64 = 0.0; // percentage points
 
 pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
     println!("Subscribed to Odds Stream");
@@ -121,6 +121,10 @@ pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: Ap
                                     if let Some(prev) = last_home_pct {
                                         let delta = (home_pct - prev).abs();
                                         if delta >= SIGNIFICANT_PROB_SWING {
+                                            println!(
+                                                "SPAWNING commentary task for fixture {fixture_id}"
+                                            );
+
                                             let event_description = format!(
                                                 "Fixture {}: implied home win probability moved from {:.1}% to {:.1}% ({}{:.1} points).",
                                                 fixture_id,

@@ -1,6 +1,5 @@
 use std::env;
 
-use axum::Json;
 use dotenv::dotenv;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -47,7 +46,7 @@ pub async fn generate_commentary(event_description: &str) -> Result<String, Stri
         model: "openai/gpt-oss-20b".to_string(),
         instructions: COMMENTARY_INSTRUCTIONS.to_string(),
         input: event_description.to_string(),
-        max_output_tokens: 60,
+        max_output_tokens: 600,
     };
 
     let response = client
@@ -64,12 +63,10 @@ pub async fn generate_commentary(event_description: &str) -> Result<String, Stri
         .await
         .map_err(|e| format!("Failed to read response body: {e}"))?;
 
+    println!("Groq raw response: {raw_text}"); // ADD THIS LINE
+
     if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return Err("Groq rate limit exceeded. Please try again shortly.".to_string());
-    }
-
-    if !status.is_success() {
-        return Err(format!("Groq API error ({status}): {raw_text}"));
     }
 
     let parsed: GroqResponse = serde_json::from_str(&raw_text)
@@ -86,10 +83,4 @@ pub async fn generate_commentary(event_description: &str) -> Result<String, Stri
         })
         .and_then(|c| c.text.clone())
         .ok_or_else(|| "Groq returned a success status but no output text.".to_string())
-}
-
-/// HTTP handler wrapper — for your /trial testing endpoint
-#[derive(Deserialize)]
-pub struct Prompt {
-    prompt: String,
 }
