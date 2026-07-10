@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Radio, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { MatchCard } from "@/components/MatchCard";
 import { useSocket } from "@/hooks/useSocket";
-import { Fixture } from "../types";
 import { getStatus } from "@/lib/get-status";
+import { Fixture } from "../types";
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Fixture[]>([]);
@@ -38,79 +38,50 @@ export default function MatchesPage() {
   }, [socket]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      {/* Background Grid */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0,255,255,.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,255,.08) 1px, transparent 1px)
-          `,
-          backgroundSize: "48px 48px",
-        }}
-      />
+    <main className="min-h-screen bg-newsprint text-ink font-body">
+      <div className="mx-auto max-w-6xl px-6 md:px-8">
+        <header className="border-b-2 flex items-center justify-between py-4">
+          <div className="flex items-center gap-5">
+            <Link
+              href="/"
+              className="border border-ink p-2 transition-colors hover:bg-ink hover:text-newsprint"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
 
-      <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
-      <div className="absolute bottom-0 right-0 h-[350px] w-[350px] rounded-full bg-blue-500/10 blur-3xl" />
+            <div>
+              <h1 className="font-headline text-4xl sm:text-5xl">MATCH DESK</h1>
 
-      <div className="relative z-10">
-        <header className="sticky top-0 z-20 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-900 hover:text-cyan-400"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Link>
-
-              <div>
-                <h1 className="text-3xl font-bold">
-                  <span className="text-white">Tx</span>
-                  <span className="bg-gradient-to-r from-cyan-300 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                    Alpha
-                  </span>
-                </h1>
-              </div>
+              <p className="mt-2 font-press text-[11px] uppercase tracking-[0.3em] text-ink-soft">
+                TxLINE Live Data Feed
+              </p>
             </div>
+          </div>
+
+          <div className="text-right">
+            <p className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              Active Fixtures
+            </p>
+
+            <p className="font-headline text-4xl">{matches.length}</p>
           </div>
         </header>
 
-        <section className="mx-auto max-w-7xl px-6 pt-12 pb-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-4xl font-black tracking-tight md:text-5xl">
-                Live Football Markets
-              </h2>
+        <section className=" grid grid-cols-1 gap-8 lg:grid-cols-3"></section>
 
-              <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-400">
-                Follow real-time odds, market movement, AI commentary, and
-                verified settlement across every live fixture.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-6 py-5 text-center">
-              <p className="text-sm uppercase tracking-widest text-slate-500">
-                Active Matches
-              </p>
-
-              <p className="mt-2 text-4xl font-black text-cyan-400">
-                {matches.length}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-6 pb-16">
+        <section className="my-6">
           {matches.length === 0 ? (
-            <div className="flex h-72 flex-col items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40">
-              <div className="mb-4 h-10 w-10 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+            <div className="border-y-4 border-ink py-20 text-center">
+              <p className="font-press text-[11px] uppercase tracking-[0.35em] text-ink-soft">
+                Receiving Live Feed
+              </p>
 
-              <h3 className="text-xl font-semibold">Loading Live Matches</h3>
+              <h3 className="mt-4 font-headline text-3xl">
+                Awaiting Match Data
+              </h3>
 
-              <p className="mt-2 text-slate-400">
-                Waiting for live market data...
+              <p className="mt-3 font-body text-sm text-ink-soft">
+                Establishing connection to the TxLINE network...
               </p>
             </div>
           ) : (
@@ -126,12 +97,10 @@ export default function MatchesPage() {
                   const statusA = getStatus(a.startTime);
                   const statusB = getStatus(b.startTime);
 
-                  // Live → Upcoming → Finished
                   if (statusOrder[statusA] !== statusOrder[statusB]) {
                     return statusOrder[statusA] - statusOrder[statusB];
                   }
 
-                  // Within the same status, sort by start time
                   return a.startTime - b.startTime;
                 })
                 .map((match) => (
@@ -141,14 +110,16 @@ export default function MatchesPage() {
           )}
         </section>
 
-        <footer className="border-t border-slate-800/60">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 md:flex-row">
-            <p>
-              Live updates • AI Commentary • Probability Engine • Verified
-              Settlement
+        {/* Footer */}
+        <footer className="mt-12 border-t-4 border-ink">
+          <div className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+            <p className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              Live Odds • AI Commentary • Verified Settlement
             </p>
 
-            <p>Real-time WebSocket Streaming</p>
+            <p className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              TxLINE Data Network
+            </p>
           </div>
         </footer>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Calendar, Clock3, Radio } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Fixture } from "@/app/types";
 
 interface MatchCardProps {
@@ -29,82 +29,104 @@ export function MatchCard({ match }: MatchCardProps) {
     ? match.participant2
     : match.participant1;
 
+  const statusLabel = {
+    live: "LIVE",
+    upcoming: "SCHEDULED",
+    finished: "FINAL",
+  }[status];
+
   return (
     <Link href={`/match/${match.fixtureId}`} className="group block">
-      <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-500/40 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,.12)]">
-        {/* Accent */}
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400" />
+      <article
+        className="
+          h-full
+          border-2 border-ink
+          bg-newsprint
+          p-5
+          transition-all
+          duration-200
+          hover:-translate-y-1
+          hover:shadow-[6px_6px_0_0_#1a1a1a]
+        "
+      >
+        <div className="flex items-start justify-between border-b border-ink pb-3">
+          <div>
+            <p className="mt-1 font-press text-[10px] uppercase tracking-[0.25em] text-ink-soft">
+              Fixture <span className="font-semibold">#{match.fixtureId}</span>
+            </p>
+          </div>
 
-        {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
-            Football
+          <span
+            className={`border px-2 py-1 font-press text-[10px] uppercase tracking-[0.25em] ${
+              status === "live"
+                ? "border-ink font-bold"
+                : "border-stamp text-ink-soft"
+            }`}
+          >
+            {statusLabel}
           </span>
-
-          {status === "live" ? (
-            <div className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-1">
-              <Radio className="h-3 w-3 animate-pulse text-red-400" />
-              <span className="text-[11px] font-bold text-red-400">LIVE</span>
-            </div>
-          ) : (
-            <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                status === "upcoming"
-                  ? "bg-cyan-500/10 text-cyan-300"
-                  : "bg-slate-800 text-slate-400"
-              }`}
-            >
-              {status.toUpperCase()}
-            </span>
-          )}
         </div>
-
-        {/* Teams */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="truncate text-lg font-semibold text-white">
+        <div className="my-4">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="truncate font-headline text-2xl leading-tight">
               {homeTeam}
-            </span>
+            </h3>
 
-            <span className="text-xs uppercase text-slate-500">HOME</span>
+            <span className="shrink-0 font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              HOME
+            </span>
           </div>
 
-          <div className="mx-auto h-px bg-slate-800" />
+          <div className="my-4 border-t border-dashed border-ink" />
 
-          <div className="flex items-center justify-between">
-            <span className="truncate text-lg font-semibold text-white">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="truncate font-headline text-2xl leading-tight">
               {awayTeam}
+            </h3>
+
+            <span className="shrink-0 font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              AWAY
             </span>
-
-            <span className="text-xs uppercase text-slate-500">AWAY</span>
           </div>
         </div>
+        <div className="border-t border-ink pt-4">
+          <div className="flex justify-between gap-4">
+            <div>
+              <p className="font-press text-[10px] uppercase tracking-[0.25em] text-ink-soft">
+                Date
+              </p>
 
-        {/* Footer */}
-        <div className="mt-5 flex items-center justify-between border-t border-slate-800 pt-4">
-          <div className="flex items-center gap-4 text-sm text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-cyan-400" />
-
-              {new Date(match.startTime).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
+              <p className="mt-1 font-body text-sm">
+                {new Date(match.startTime).toLocaleDateString(undefined, {
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <Clock3 className="h-4 w-4 text-cyan-400" />
+            <div>
+              <p className="font-press text-[10px] uppercase tracking-[0.25em] text-ink-soft">
+                Kickoff
+              </p>
 
-              {new Date(match.startTime).toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              <p className="mt-1 font-body text-sm">
+                {new Date(match.startTime).toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                IST
+              </p>
             </div>
           </div>
-
-          <ArrowUpRight className="h-5 w-5 text-slate-600 transition-all group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </div>
-      </div>
+        <div className="mt-5 flex items-center justify-between border-t border-ink pt-3">
+          <p className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+            Open Match Report
+          </p>
+
+          <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </div>
+      </article>
     </Link>
   );
 }

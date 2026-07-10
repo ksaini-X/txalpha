@@ -33,9 +33,8 @@ export function ProbabilityChart({
   return (
     <div className="relative h-[420px] w-full">
       {/* Live Indicator */}
-      <div className="absolute right-0 top-0 z-10 flex items-center gap-2 rounded-full border border-cyan-500/20 bg-slate-900/80 px-3 py-1 backdrop-blur">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
-        <span className="text-xs font-semibold tracking-wide text-cyan-300">
+      <div className="absolute right-0 top-0 border-2 border-ink px-2 py-1">
+        <span className="font-press text-[10px] uppercase tracking-[0.3em]">
           LIVE
         </span>
       </div>
@@ -44,12 +43,12 @@ export function ProbabilityChart({
       <div className="mb-5 flex items-center gap-6">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-sky-400" />
-          <span className="text-sm font-medium text-slate-300">{homeTeam}</span>
+          <span className="text-sm font-medium text-ink">{homeTeam}</span>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-violet-400" />
-          <span className="text-sm font-medium text-slate-300">{awayTeam}</span>
+          <span className="text-sm font-medium text-ink">{awayTeam}</span>
         </div>
       </div>
 

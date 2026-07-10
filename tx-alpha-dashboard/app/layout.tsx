@@ -1,24 +1,40 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Inter } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TxAlpha | Live Sports Market Intelligence",
-  description: "Real-time market intelligence for live football",
+  title: "txalpa — Real-time Sports Data & Consensus Betting Odds",
+  description:
+    "High-performance data layer with cryptographically anchored World Cup data on Solana. Live odds and scores powered by TxLINE.",
   generator: "v0.app",
+  icons: {
+    icon: [
+      {
+        url: "/icon-light-32x32.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark-32x32.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: [{ media: "(prefers-color-scheme: dark)", color: "#0a0e27" }],
-  userScalable: true,
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
+  ],
 };
 
 export default function RootLayout({
@@ -27,11 +43,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
-    >
-      <body className="antialiased bg-slate-950 text-slate-50">
+    <html lang="en" className={`${jetbrainsMono.className} bg-newsprint`}>
+      <body className="antialiased text-ink">
         {children}
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>

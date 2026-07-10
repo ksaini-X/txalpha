@@ -236,8 +236,20 @@ export default function MatchDetailPage({
 
   if (!fixture) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="text-slate-400">Loading match…</p>
+      <main className=" bg-newsprint text-ink font-body">
+        <div className="mx-auto flex max-w-6xl items-center justify-center px-6 py-32">
+          <div className="w-full max-w-xl border-y-4  py-10 text-center">
+            <p className="font-press text-[11px] uppercase tracking-[0.35em] text-ink-soft">
+              Match Desk
+            </p>
+
+            <h1 className="mt-4 font-headline text-4xl">Loading Match</h1>
+
+            <p className="mt-3 font-body text-sm text-ink-soft">
+              Retrieving fixture data...
+            </p>
+          </div>
+        </div>
       </main>
     );
   }
@@ -261,142 +273,107 @@ export default function MatchDetailPage({
   });
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `
-        linear-gradient(rgba(0,255,255,.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,.08) 1px, transparent 1px)
-      `,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div className="absolute left-1/2 top-0 h-150 w-150 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
-
-      <div className="relative z-10">
-        <header className="sticky top-0 z-20 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center gap-5 px-6 py-4">
+    <main className=" bg-newsprint text-ink font-body">
+      <div className="relative">
+        <header className="sticky top-0 z-20  border-ink bg-newsprint">
+          <div className="mx-auto flex max-w-7xl items-center gap-5 px-6 py-4  ">
             <Link
               href="/matches"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 transition-all hover:border-cyan-500/40 hover:bg-slate-900 hover:text-cyan-400"
+              className="flex h-11 w-11 shrink-0 items-center justify-center  transition-colors hover:bg-ink hover:text-newsprint"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-10 w-10" />
             </Link>
 
             <div className="flex min-w-0 flex-1 items-center justify-between">
               <div className="min-w-0">
-                <div className="flex items-center gap-5">
-                  <h1 className="max-w-[220px] truncate text-xl font-bold text-white lg:text-2xl">
+                <div className="flex flex-wrap items-center gap-5">
+                  <h1 className="max-w-55 truncate font-headline text-2xl lg:text-4xl">
                     {homeTeam}
                   </h1>
 
                   {liveScore ? (
-                    <div className="flex items-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 shadow-[0_0_20px_rgba(6,182,212,.08)]">
-                      <span className="w-8 text-center text-2xl font-bold tabular-nums text-cyan-400">
+                    <div className="flex items-center border-2 border-ink px-5 py-2">
+                      <span className="w-8 text-center font-headline text-3xl tabular-nums">
                         {liveScore.home}
                       </span>
 
-                      <span className="mx-3 text-slate-500">:</span>
+                      <span className="mx-3 font-headline text-2xl">—</span>
 
-                      <span className="w-8 text-center text-2xl font-bold tabular-nums text-cyan-400">
+                      <span className="w-8 text-center font-headline text-3xl tabular-nums">
                         {liveScore.away}
                       </span>
                     </div>
                   ) : (
-                    <div className="rounded-full border border-slate-700 px-4 py-1.5 text-[11px] font-semibold tracking-[0.35em] text-slate-500">
-                      VS
+                    <div className=" px-4 py-2">
+                      <span className="font-press text-[11px] uppercase tracking-[0.35em]">
+                        VS
+                      </span>
                     </div>
                   )}
 
-                  <h1 className="max-w-[220px] truncate text-xl font-bold text-white lg:text-2xl">
+                  <h1 className="max-w-[220px] truncate font-headline text-2xl lg:text-4xl">
                     {awayTeam}
                   </h1>
                 </div>
-
-                <div className="mt-2 flex items-center gap-3 text-sm text-slate-400">
-                  <span className="font-medium">{fixture.competition}</span>
-
-                  <span className="text-slate-600">•</span>
-
-                  <span>{kickoffLabel}</span>
-                </div>
               </div>
-
-              {/* Status */}
             </div>
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-10">
-          <div className="mb-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-              <p className="text-xs uppercase tracking-widest text-slate-500">
-                Kickoff
-              </p>
+        <div className="mx-auto max-w-7xl px-6 py-">
+          <div className="mb-6 border-y border-ink">
+            <div className="grid divide-ink md:grid-cols-3 md:divide-x">
+              <div className="px-5 py-2">
+                <p className="font-press text-[9px] uppercase tracking-[0.35em] text-ink-soft">
+                  Kickoff
+                </p>
 
-              <div className="mt-3 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-cyan-400" />
-
-                <span className="font-medium text-slate-200">
-                  {kickoffLabel}
-                </span>
+                <div className="mt-1 flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="font-headline text-lg">{kickoffLabel}</span>
+                </div>
               </div>
-            </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-              <p className="text-xs uppercase tracking-widest text-slate-500 ">
-                Status
-              </p>
+              <div className="px-5 py-2">
+                <p className="font-press text-[9px] uppercase tracking-[0.35em] text-ink-soft">
+                  Market Status
+                </p>
 
-              <p
-                className={`mt-2 font-bold ${
-                  marketStatus === "JUSTIFIED"
-                    ? "text-green-400"
-                    : "text-amber-400"
-                }`}
-              >
-                {marketStatus}
-              </p>
-            </div>
+                <p className="mt-1 font-headline text-lg">{marketStatus}</p>
+              </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-widest text-slate-500">
-                Samples
-              </p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {probabilityHistory.length}
-              </p>
+              <div className="px-5 py-2">
+                <p className="font-press text-[9px] uppercase tracking-[0.35em] text-ink-soft">
+                  Samples
+                </p>
+
+                <p className="mt-1 font-headline text-lg tabular-nums">
+                  {probabilityHistory.length}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-4">
-            {/* Chart */}
-            <div className="space-y-6 lg:col-span-3">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-                <div className="mb-6 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold">Probability Movement</h2>
-
-                    <p className="text-sm text-slate-400">
-                      Live implied probability from market odds
-                    </p>
-                  </div>
+          <div className="grid gap-2 lg:grid-cols-4 ">
+            <div className="space-y-2 lg:col-span-3">
+              <div className=" border-ink bg-newsprint p-">
+                <div className="mb-4 border-b border-ink pb-4">
+                  <h2 className="font-headline text-2xl">
+                    Probability Movement
+                  </h2>
                 </div>
 
                 {probabilityHistory.length === 0 ? (
                   <div className="flex h-[450px] items-center justify-center">
                     <div className="text-center">
-                      <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+                      <p className="font-press text-[11px] uppercase tracking-[0.35em] text-ink-soft">
+                        Loading
+                      </p>
 
-                      <p className="text-slate-300">
+                      <p className="mt-4 font-headline text-2xl">
                         {hasInitialData
                           ? "Waiting for live odds..."
                           : "Connecting to market feed..."}
-                      </p>
-
-                      <p className="mt-2 text-sm text-slate-500">
-                        Probability data will appear automatically.
                       </p>
                     </div>
                   </div>
@@ -409,33 +386,32 @@ export default function MatchDetailPage({
                 )}
               </div>
             </div>
-            {/* AI Commentary */}
-            <div className="max-h-[600px] space-y-5 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+
+            <div className="max-h-130 space-y-4 overflow-y-auto  border-ink bg-newsprint p-2 border-l-1 commentary-scroll">
+              <div className="border-b border-ink pb-2">
+                <h2 className="font-headline text-xl">AI Commentary</h2>
+              </div>
               {commentaryFeed.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  No commentary yet — waiting for a significant event.
+                <p className="font-body text-sm text-ink-soft">
+                  No commentary yet.
                 </p>
               ) : (
                 commentaryFeed.map((entry) => (
                   <div
                     key={entry.ts}
-                    className="rounded-xl border border-slate-800 bg-slate-900 p-4"
+                    className="border-b border-dashed border-ink pb-2 last:border-0"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs uppercase tracking-widest text-cyan-400">
+                      <span className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
                         {new Date(entry.ts).toLocaleTimeString(undefined, {
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
                         })}
                       </span>
-                      <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[11px] text-cyan-300">
-                        AI Insight
-                      </span>
                     </div>
-                    <p className="text-sm leading-6 text-slate-300">
-                      {entry.text}
-                    </p>
+
+                    <p className="font-body text-xs leading-6">{entry.text}</p>
                   </div>
                 ))
               )}
