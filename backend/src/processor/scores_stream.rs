@@ -1,14 +1,52 @@
 use axum::extract::ws::Message;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     AppConfig,
-    commentary::index::generate_commentary, // adjust path to match your actual module
+    commentary::index::generate_commentary,
     processor::get_fixture_scores_snapshot::{FixtureScoreSnapshot, get_fixture_score_snapshot},
-    types::scores_stream::ScoreEvent,
 };
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ScoreEvent {
+    #[serde(rename = "FixtureId")]
+    pub fixture_id: i64,
+    #[serde(rename = "GameState")]
+    pub game_state: Option<String>,
+    #[serde(rename = "StartTime")]
+    pub start_time: Option<i64>,
+    #[serde(rename = "Clock")]
+    pub clock: Option<Clock>,
+    #[serde(rename = "Data")]
+    pub data: Option<EventData>,
+    #[serde(rename = "Stats")]
+    pub stats: Option<HashMap<String, i64>>,
+    #[serde(rename = "Participant")]
+    pub participant: Option<i64>,
+    #[serde(rename = "Ts")]
+    pub ts: i64,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Clock {
+    #[serde(rename = "Running")]
+    pub running: bool,
+    #[serde(rename = "Seconds")]
+    pub seconds: i64,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct EventData {
+    #[serde(rename = "Corner")]
+    pub corner: bool,
+    #[serde(rename = "Goal")]
+    pub goal: bool,
+    #[serde(rename = "Penalty")]
+    pub penalty: bool,
+}
 
 #[derive(Serialize, Debug, Deserialize)]
 pub struct ScoresDataWebSocketEvent {
@@ -30,9 +68,10 @@ pub struct InitialScoresDataWebSocketEvent {
 #[derive(Serialize, Debug)]
 pub struct CommentaryWebSocketEvent {
     #[serde(rename = "type")]
-    event_type: &'static str, // "commentary"
+    event_type: &'static str,
     fixture_id: i64,
     text: String,
+    ts: i64,
 }
 
 pub async fn scores_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
@@ -89,65 +128,71 @@ pub async fn scores_stream(client_tx: Sender<Message>, fixture_id: i64, config: 
                             continue; // heartbeat, skip
                         }
 
-                        if let Ok(data) = serde_json::from_str::<ScoreEvent>(msg) {
-                            if data.data.fixture_id != fixture_id {
-                                continue;
-                            }
-
-                            // 1. Send the raw update immediately, as before
-                            let ws_event = ScoresDataWebSocketEvent {
-                                event_type: "score_update",
-                                data: data.clone(), // clone since we need `data` again below
-                                fixture_id,
-                                ts: chrono::Utc::now().timestamp(),
-                            };
-                            match serde_json::to_string(&ws_event) {
-                                Ok(json) => {
-                                    if client_tx.send(Message::Text(json.into())).await.is_err() {
-                                        return;
-                                    }
+                        match serde_json::from_str::<ScoreEvent>(msg) {
+                            Ok(data) => {
+                                if data.fixture_id != fixture_id {
+                                    continue;
                                 }
-                                Err(e) => eprintln!("Failed to serialize update: {e}"),
-                            }
 
-                            // 2. Check if this event is significant enough for commentary
-                            if let Some(data_soccer) = &data.data.data_soccer {
-                                let is_significant = data_soccer.goal == Some(true)
-                                    || data_soccer.red_card == Some(true)
-                                    || data_soccer.yellow_card == Some(true);
+                                // 1. send raw update immediately
+                                let ws_event = ScoresDataWebSocketEvent {
+                                    event_type: "score_update",
+                                    data: data.clone(),
+                                    fixture_id,
+                                    ts: chrono::Utc::now().timestamp(),
+                                };
+                                match serde_json::to_string(&ws_event) {
+                                    Ok(json) => {
+                                        if client_tx.send(Message::Text(json.into())).await.is_err()
+                                        {
+                                            return;
+                                        }
+                                    }
+                                    Err(e) => eprintln!("Failed to serialize update: {e}"),
+                                }
 
-                                if is_significant {
-                                    let event_description = format!(
-                                        "Fixture {}: {} at minute {:?}. Goal: {:?}, Yellow card: {:?}, Red card: {:?}",
-                                        fixture_id,
-                                        data.event,
-                                        data_soccer.minutes,
-                                        data_soccer.goal,
-                                        data_soccer.yellow_card,
-                                        data_soccer.red_card,
-                                    );
+                                // 2. check significance (goal only, confirmed field)
+                                if let Some(event_data) = &data.data {
+                                    if event_data.goal {
+                                        let minute = data
+                                            .clock
+                                            .as_ref()
+                                            .map(|c| c.seconds / 60)
+                                            .unwrap_or(0);
+                                        let event_description = format!(
+                                            "Fixture {}: Goal scored by participant {:?} at minute {}.",
+                                            fixture_id, data.participant, minute
+                                        );
 
-                                    let client_tx_clone = client_tx.clone();
-                                    tokio::spawn(async move {
-                                        match generate_commentary(&event_description).await {
-                                            Ok(text) => {
-                                                let payload = CommentaryWebSocketEvent {
-                                                    event_type: "commentary",
-                                                    fixture_id,
-                                                    text,
-                                                };
-                                                if let Ok(json) = serde_json::to_string(&payload) {
-                                                    let _ = client_tx_clone
-                                                        .send(Message::Text(json.into()))
-                                                        .await;
+                                        let client_tx_clone = client_tx.clone();
+                                        let event_ts = data.ts;
+                                        tokio::spawn(async move {
+                                            match generate_commentary(&event_description).await {
+                                                Ok(text) => {
+                                                    let payload = CommentaryWebSocketEvent {
+                                                        event_type: "commentary",
+                                                        fixture_id,
+                                                        text,
+                                                        ts: event_ts,
+                                                    };
+                                                    if let Ok(json) =
+                                                        serde_json::to_string(&payload)
+                                                    {
+                                                        let _ = client_tx_clone
+                                                            .send(Message::Text(json.into()))
+                                                            .await;
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    eprintln!("Commentary generation failed: {e}")
                                                 }
                                             }
-                                            Err(e) => {
-                                                eprintln!("Commentary generation failed: {e}")
-                                            }
-                                        }
-                                    });
+                                        });
+                                    }
                                 }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to parse score event: {e} — raw: {msg}");
                             }
                         }
                     }
