@@ -16,6 +16,7 @@ pub struct ScoresDataWebSocketEvent {
     event_type: &'static str,
     fixture_id: i64,
     data: ScoreEvent,
+    ts: i64,
 }
 
 #[derive(Serialize, Debug, Deserialize)]
@@ -98,6 +99,7 @@ pub async fn scores_stream(client_tx: Sender<Message>, fixture_id: i64, config: 
                                 event_type: "score_update",
                                 data: data.clone(), // clone since we need `data` again below
                                 fixture_id,
+                                ts: chrono::Utc::now().timestamp(),
                             };
                             match serde_json::to_string(&ws_event) {
                                 Ok(json) => {

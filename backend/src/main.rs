@@ -2,10 +2,7 @@ pub mod commentary;
 pub mod processor;
 pub mod snapshot;
 pub mod types;
-use dotenv::dotenv;
-use futures_util::{SinkExt, StreamExt};
-use std::env;
-
+use axum::http::{Method, header};
 use axum::{
     Router,
     extract::{
@@ -13,14 +10,19 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
-    routing::{get, post},
+    routing::get,
 };
+use dotenv::dotenv;
+use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
+use std::env;
 use tokio::net::TcpListener;
+use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
     processor::{
-        get_fixtures::get_fixtures, odds_stream::odds_stream, scores_stream::scores_stream,
+        get_fixture_validation::get_validation_handler, get_fixtures::get_fixtures,
+        odds_stream::odds_stream, scores_stream::scores_stream,
     },
     types::incoming_msg::IncomingMessage,
 };
@@ -35,6 +37,12 @@ pub struct AppConfig {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
+
     let client = Client::new();
     let config = AppConfig {
         jwt: env::var("TXLINE_JWT").expect("TXLINE_JWT not set"),
@@ -46,7 +54,9 @@ async fn main() {
     let router = Router::new()
         .route("/health", get(health))
         .route("/ws", get(ws_handler))
-        .with_state(config);
+        .route("/api/validation", get(get_validation_handler))
+        .with_state(config)
+        .layer(cors);
     axum::serve(listener, router).await.unwrap()
 }
 async fn health() -> String {

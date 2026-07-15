@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Providers from "./providers";
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
@@ -45,8 +46,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jetbrainsMono.className} bg-newsprint`}>
       <body className="antialiased text-ink">
-        {children}
-        {process.env.NODE_ENV === "production" && <Analytics />}
+        <Providers>
+          {children}
+          {process.env.NODE_ENV === "production" && <Analytics />}
+        </Providers>
       </body>
     </html>
   );

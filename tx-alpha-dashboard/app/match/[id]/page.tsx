@@ -1,11 +1,14 @@
+// app/match/[id]/page.tsx
 "use client";
 
 import Link from "next/link";
 import { ProbabilityChart } from "@/components/ProbabilityChart";
-import { ArrowLeft, TrendingUp, Clock } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { Fixture } from "@/app/types";
+import toast from "react-hot-toast";
+import { CommentaryFeed } from "@/components/CommantaryFeed";
 
 export interface ProbabilityPoint {
   ts: number;
@@ -19,18 +22,6 @@ interface MatchEvent {
   type: "goal" | "corner" | "yellow_card" | "red_card";
   participant: number;
 }
-interface OddsUpdate {
-  fixture_id: number;
-  data: {
-    fixture_id: number;
-    ts: number;
-    super_odds_type: string;
-    market_period: string | null;
-    price_names: string[];
-    pct: string[];
-  };
-}
-
 interface CommentaryEntry {
   text: string;
   ts: number;
@@ -87,7 +78,6 @@ export default function MatchDetailPage({
 
       console.log(msg);
 
-      // fixtures list response
       if (Array.isArray(msg)) {
         const found = msg.find((f: Fixture) => f.fixtureId === Number(id));
         if (found) setFixture(found);
@@ -95,6 +85,9 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "snapshot") {
+        toast.success("Odds snaphot", {
+          position: "bottom-right",
+        });
         setHasInitialData(true);
 
         const relevant = (msg.data as any[]).filter(
@@ -114,16 +107,7 @@ export default function MatchDetailPage({
           })
           .filter((p): p is ProbabilityPoint => p !== null)
           .sort((a, b) => a.ts - b.ts);
-        console.log(
-          "snapshot entries:",
-          msg.data.length,
-          "relevant (1X2):",
-          relevant.length,
-        );
-        console.log(
-          "market types present:",
-          msg.data.map((d: any) => d.superOddsType),
-        );
+
         if (points.length > 0) {
           setProbabilityHistory(points);
         }
@@ -131,6 +115,9 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "update" || (!Array.isArray(msg.data) && msg.data)) {
+        toast.success("Odds Update", {
+          position: "bottom-right",
+        });
         const data = msg.data;
         if (data?.superOddsType !== "1X2_PARTICIPANT_RESULT") return;
 
@@ -160,7 +147,10 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "score_snapshot") {
-        const latest = msg.data[msg.data.length - 1]; // or however you pick "current" from the snapshot array
+        toast.success("Score Snapshot", {
+          position: "bottom-right",
+        });
+        const latest = msg.data[msg.data.length - 1];
         if (latest?.scoreSoccer) {
           setLiveScore({
             home: latest.scoreSoccer.Participant1.Total.Goals,
@@ -174,17 +164,24 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "commentary") {
+        toast.success("Commentary Update", {
+          position: "bottom-right",
+        });
         const text = msg.text as string;
+        const ts = msg.ts as number;
         if (!text) return;
 
         setCommentaryFeed((prev) => {
-          const updated = [{ text, ts: Date.now() }, ...prev];
+          const updated = [{ text, ts }, ...prev];
           return updated.slice(0, 15);
         });
         return;
       }
 
       if (msg.type === "score_update") {
+        toast.success("Score Update", {
+          position: "bottom-right",
+        });
         const data = msg.data.data; // ScoreEvent.data
         if (data.scoreSoccer) {
           setLiveScore({
@@ -196,7 +193,6 @@ export default function MatchDetailPage({
           setLiveMinute(Math.floor(data.clock.seconds / 60));
         }
 
-        // if this event is a notable match event, add to feed
         if (
           data.dataSoccer?.goal ||
           data.dataSoccer?.corner ||
@@ -218,7 +214,7 @@ export default function MatchDetailPage({
               type: eventType,
               participant: data.dataSoccer.participant ?? 0,
             },
-            ...prev, // newest first
+            ...prev,
           ]);
         }
         return;
@@ -262,8 +258,6 @@ export default function MatchDetailPage({
     : fixture.participant1;
 
   const kickoffDate = new Date(fixture.startTime);
-  const now = Date.now();
-  const hasStarted = now >= fixture.startTime;
   const kickoffLabel = kickoffDate.toLocaleString(undefined, {
     weekday: "short",
     month: "short",
@@ -287,7 +281,7 @@ export default function MatchDetailPage({
             <div className="flex min-w-0 flex-1 items-center justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-5">
-                  <h1 className="max-w-55 truncate font-headline text-2xl lg:text-4xl">
+                  <h1 className="max-w-55  font-headline text-2xl lg:text-4xl">
                     {homeTeam}
                   </h1>
 
@@ -311,7 +305,7 @@ export default function MatchDetailPage({
                     </div>
                   )}
 
-                  <h1 className="max-w-[220px] truncate font-headline text-2xl lg:text-4xl">
+                  <h1 className="max-w-[220px]  font-headline text-2xl lg:text-4xl">
                     {awayTeam}
                   </h1>
                 </div>
@@ -357,7 +351,7 @@ export default function MatchDetailPage({
           <div className="grid gap-2 lg:grid-cols-4 ">
             <div className="space-y-2 lg:col-span-3">
               <div className=" border-ink bg-newsprint p-">
-                <div className="mb-4 border-b border-ink pb-4">
+                <div className="mb-4 border-b border-ink pb-3">
                   <h2 className="font-headline text-2xl">
                     Probability Movement
                   </h2>
@@ -387,35 +381,10 @@ export default function MatchDetailPage({
               </div>
             </div>
 
-            <div className="max-h-130 space-y-4 overflow-y-auto  border-ink bg-newsprint p-2 border-l-1 commentary-scroll">
-              <div className="border-b border-ink pb-2">
-                <h2 className="font-headline text-xl">AI Commentary</h2>
-              </div>
-              {commentaryFeed.length === 0 ? (
-                <p className="font-body text-sm text-ink-soft">
-                  No commentary yet.
-                </p>
-              ) : (
-                commentaryFeed.map((entry) => (
-                  <div
-                    key={entry.ts}
-                    className="border-b border-dashed border-ink pb-2 last:border-0"
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-press text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-                        {new Date(entry.ts).toLocaleTimeString(undefined, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
-                      </span>
-                    </div>
-
-                    <p className="font-body text-xs leading-6">{entry.text}</p>
-                  </div>
-                ))
-              )}
-            </div>
+            <CommentaryFeed
+              commentaryFeed={commentaryFeed}
+              fixtureId={fixture.fixtureId}
+            />
           </div>
         </div>
       </div>

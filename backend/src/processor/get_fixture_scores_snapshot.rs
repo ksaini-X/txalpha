@@ -18,7 +18,6 @@ pub struct FixtureScoreSnapshot {
     #[serde(rename = "dataSoccer")]
     pub data_soccer: Option<DataSoccer>,
 }
-
 pub async fn get_fixture_score_snapshot(
     fixture_id: i64,
     config: AppConfig,
@@ -35,15 +34,28 @@ pub async fn get_fixture_score_snapshot(
         .await
         .map_err(|e| format!("Request failed: {e}"))?;
 
-    let snapshot: Vec<FixtureScoreSnapshot> = response
-        .json()
+    let status = response.status();
+    let raw_text = response
+        .text()
         .await
-        .map_err(|e| format!("Failed to parse scores historical data JSON: {e}"))?;
+        .map_err(|e| format!("Failed to read body: {e}"))?;
+
+    if !status.is_success() {
+        return Err(format!(
+            "Scores historical API error ({status}): {raw_text}"
+        ));
+    }
+
+    let snapshot: Vec<FixtureScoreSnapshot> = serde_json::from_str(&raw_text).map_err(|e| {
+        format!(
+            "Failed to parse: {e} — raw (first 500 chars): {}",
+            &raw_text.chars().take(500).collect::<String>()
+        )
+    })?;
 
     println!(
         "Got {} score snapshot entries for fixture {fixture_id}",
         snapshot.len()
     );
-
     Ok(snapshot)
 }

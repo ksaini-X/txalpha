@@ -29,18 +29,18 @@ pub struct InitialOddsDataWebSocketEvent {
 #[derive(Serialize, Debug)]
 pub struct CommentaryWebSocketEvent {
     #[serde(rename = "type")]
-    event_type: &'static str, // "commentary"
+    event_type: &'static str,
     fixture_id: i64,
     text: String,
+    ts: i64,
 }
 
-const SIGNIFICANT_PROB_SWING: f64 = 0.0; // percentage points
+const SIGNIFICANT_PROB_SWING: f64 = 2.0;
 
 pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
     println!("Subscribed to Odds Stream");
     let initial_data = get_fixture_odds_snapshot(fixture_id, config.clone()).await;
 
-    // track last known home-win probability, to detect swings
     let mut last_home_pct: Option<f64> = None;
 
     match initial_data {
@@ -143,6 +143,7 @@ pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: Ap
                                                             event_type: "commentary",
                                                             fixture_id,
                                                             text,
+                                                            ts: data.ts,
                                                         };
                                                         if let Ok(json) =
                                                             serde_json::to_string(&payload)
