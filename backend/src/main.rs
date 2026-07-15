@@ -1,3 +1,4 @@
+use std::env;
 pub mod commentary;
 pub mod processor;
 pub mod snapshot;
@@ -15,7 +16,6 @@ use axum::{
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
-use std::env;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -50,7 +50,11 @@ async fn main() {
         client,
     };
 
-    let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let addr = format!("0.0.0.0:{port}");
+
+    let listener = TcpListener::bind(&addr).await.unwrap();
+    println!("listening on {addr}");
     let router = Router::new()
         .route("/health", get(health))
         .route("/ws", get(ws_handler))
