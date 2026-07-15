@@ -35,7 +35,7 @@ pub struct CommentaryWebSocketEvent {
     ts: i64,
 }
 
-const SIGNIFICANT_PROB_SWING: f64 = 2.0;
+const SIGNIFICANT_PROB_SWING: f64 = 5.0;
 
 pub async fn odds_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
     println!("Subscribed to Odds Stream");

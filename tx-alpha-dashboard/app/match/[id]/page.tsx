@@ -179,44 +179,41 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "score_update") {
-        toast.success("Score Update", {
-          position: "bottom-right",
-        });
-        const data = msg.data.data; // ScoreEvent.data
-        if (data.scoreSoccer) {
-          setLiveScore({
-            home: data.scoreSoccer.Participant1.Total.Goals,
-            away: data.scoreSoccer.Participant2.Total.Goals,
-          });
-        }
+        toast.success("Score Update", { position: "bottom-right" });
+
+        const data = msg.data; // ScoreEvent — no nested .data anymore
+
+        // no scoreSoccer/cumulative goal count in real payload — see note below
         if (data.clock) {
           setLiveMinute(Math.floor(data.clock.seconds / 60));
         }
 
-        if (
-          data.dataSoccer?.goal ||
-          data.dataSoccer?.corner ||
-          data.dataSoccer?.yellowCard ||
-          data.dataSoccer?.redCard
-        ) {
-          const eventType = data.dataSoccer.goal
-            ? "goal"
-            : data.dataSoccer.redCard
-              ? "red_card"
-              : data.dataSoccer.yellowCard
-                ? "yellow_card"
-                : "corner";
-
+        if (data.data?.goal) {
           setMatchEvents((prev) => [
             {
-              minute: data.dataSoccer.minutes ?? liveMinute ?? 0,
+              minute: data.clock
+                ? Math.floor(data.clock.seconds / 60)
+                : (liveMinute ?? 0),
               ts: data.ts,
-              type: eventType,
-              participant: data.dataSoccer.participant ?? 0,
+              type: "goal" as const,
+              participant: data.participant ?? 0,
             },
             ...prev,
           ]);
+
+          // bump live score locally since there's no cumulative total in the payload
+          setLiveScore((prev) => {
+            const isParticipant1 = data.participant === 1; // confirm this mapping once you see more data
+            if (!prev)
+              return isParticipant1
+                ? { home: 1, away: 0 }
+                : { home: 0, away: 1 };
+            return isParticipant1
+              ? { ...prev, home: prev.home + 1 }
+              : { ...prev, away: prev.away + 1 };
+          });
         }
+
         return;
       }
     };
