@@ -19,7 +19,7 @@ export interface ProbabilityPoint {
 interface MatchEvent {
   minute: number;
   ts: number;
-  type: "goal" | "corner" | "yellow_card" | "red_card";
+  type: "goal"; // only confirmed type for now — expand once more event shapes are observed
   participant: number;
 }
 interface CommentaryEntry {
