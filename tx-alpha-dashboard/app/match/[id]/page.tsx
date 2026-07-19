@@ -147,19 +147,26 @@ export default function MatchDetailPage({
       }
 
       if (msg.type === "score_snapshot") {
-        toast.success("Score Snapshot", {
-          position: "bottom-right",
-        });
-        const latest = msg.data[msg.data.length - 1];
-        if (latest?.scoreSoccer) {
+        toast.success("Score Snapshot", { position: "bottom-right" });
+
+        const events = msg.data as any[];
+
+        // find the most recent event that actually carries a Score breakdown
+        // (not every event has one — only checkpoint events like HT/FT do)
+        const latestWithScore = [...events].reverse().find((e) => e.score);
+
+        if (latestWithScore?.score) {
           setLiveScore({
-            home: latest.scoreSoccer.Participant1.Total.Goals,
-            away: latest.scoreSoccer.Participant2.Total.Goals,
+            home: latestWithScore.score.participant1.total?.goals ?? 0,
+            away: latestWithScore.score.participant2.total?.goals ?? 0,
           });
         }
-        if (latest?.clock) {
-          setLiveMinute(Math.floor(latest.clock.seconds / 60));
+
+        const latestEvent = events[events.length - 1];
+        if (latestEvent?.clock) {
+          setLiveMinute(Math.floor(latestEvent.clock.seconds / 60));
         }
+
         return;
       }
 
@@ -302,7 +309,7 @@ export default function MatchDetailPage({
                     </div>
                   )}
 
-                  <h1 className="max-w-[220px]  font-headline text-2xl lg:text-4xl">
+                  <h1 className="max-w-55  font-headline text-2xl lg:text-4xl">
                     {awayTeam}
                   </h1>
                 </div>

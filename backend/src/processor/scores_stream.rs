@@ -7,7 +7,7 @@ use tokio::sync::mpsc::Sender;
 use crate::{
     AppConfig,
     commentary::index::generate_commentary,
-    processor::get_fixture_scores_snapshot::{FixtureScoreSnapshot, get_fixture_score_snapshot},
+    processor::get_fixture_scores_snapshot::{ScoreSequenceEvent, get_fixture_score_sequence},
 };
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -62,7 +62,7 @@ pub struct InitialScoresDataWebSocketEvent {
     #[serde(rename = "type")]
     event_type: &'static str,
     fixture_id: i64,
-    data: Vec<FixtureScoreSnapshot>,
+    data: Vec<ScoreSequenceEvent>,
 }
 
 #[derive(Serialize, Debug)]
@@ -77,7 +77,7 @@ pub struct CommentaryWebSocketEvent {
 pub async fn scores_stream(client_tx: Sender<Message>, fixture_id: i64, config: AppConfig) {
     println!("Subscribed to Scores Stream");
 
-    let initial_data = get_fixture_score_snapshot(fixture_id, config.clone()).await;
+    let initial_data = get_fixture_score_sequence(fixture_id, config.clone()).await;
     match initial_data {
         Ok(data) => match serde_json::to_string(&InitialScoresDataWebSocketEvent {
             event_type: "score_snapshot",

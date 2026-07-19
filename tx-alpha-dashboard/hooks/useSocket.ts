@@ -12,7 +12,7 @@ export function useSocket() {
       try {
         setLoading(true);
         console.log("Hello");
-        const socket = new WebSocket(url || "ws://localhost:8080/ws");
+        const socket = new WebSocket("ws://localhost:8080/ws");
         setSocket(socket);
         console.log(socket);
       } catch (error) {
